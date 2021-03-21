@@ -1,2 +1,5 @@
 venv/
 capture.pcap
+*.etl
+*.pcapng
+*.pcap
