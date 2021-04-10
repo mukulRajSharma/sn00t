@@ -3,35 +3,20 @@ import sys
 import time
 import argparse
 from struct import *
+from datetime import datetime
 
 
 class Sniffer:
-    def __init__(self):
-        # argument parser for console arguments
-        parser = argparse.ArgumentParser(
-            description='A packet sniffer. Collect packets until ctrl+c pressed or after -t seconds ')
-        # optimal arguments
-        parser.add_argument("-f", "--filename", type=str, help="pcap file name (don't give extension)",
-                            default='capture')
-        parser.add_argument("-nr", "--noraw", action='store_false', default=True,
-                            help="No Raw mode, Stops printing raw packets")
-        parser.add_argument("-t", "--time", type=int,
-                            default=0, help="Capture time in second")
-        # store pares arguments
-        self.args = parser.parse_args()
-        # initialize stat variables
+    def __init__(self, run_time=20):
+        self.run_time = run_time
         self.start_time = time.time()
         self.ip = False
         self.packet_count = 0
         self.tcp_count = 0
         self.udp_count = 0
-        # try capture all packets(linux) if not, capture ip packets(windows)
-        # windows doesnt support socket.AF_PACKET so fallback to ip packets
+        self.packets = []
+
         try:
-            # create raw packet socket
-            self.s = socket.socket(
-                socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(3))
-        except AttributeError:
             # set ip mode true
             self.ip = True
             # get the public network interface
@@ -49,13 +34,15 @@ class Sniffer:
             self.s.ioctl(socket.SIO_RCVALL, socket.RCVALL_ON)
         except socket.error as e:
             print('Socket could not be created.')
-            print('    Error Code : {}'.format(getattr(e, 'errno', '?')))
-            print('       Message : {}'.format(e))
+            print('Message : {}'.format(e))
             sys.exit()
 
     # starts capture loop, saves to pcap file and displays packet detail
     def capture_packets(self):
-        while True:
+        n = 1
+        while self.control_time():
+            p = []
+            p.append(datetime.now())
             # Receive data from the socket, return value is a pair (bytes, address)
             # max buffer size for packets
             packet = self.s.recvfrom(65565)
@@ -63,10 +50,10 @@ class Sniffer:
             # packet string from tuple
             packet = packet[0]
 
-            print("-------------Packet Start-------------")
+            print("##### Packet {} Start #####".format(n))
             # print raw packet if noraw not given
-            if self.args.noraw:
-                print('Packet: {}'.format(str(packet)))
+            # if self.args.noraw:
+            #     print('Packet: {}'.format(str(packet)))
 
             # add packet to pcap file
             self.add_pcap(packet)
@@ -77,16 +64,20 @@ class Sniffer:
                 eth_length = 14
                 # get first 14(eth_length) character from packet
                 eth_header = packet[0:eth_length]
-                # unpack string big-endian to (6 char, 6 char, unsigned short) format
+                # unpack string big-endian to (6 char - dst_mac, 6 char - src_mac, unsigned short - protocol) format
                 eth = unpack('!6s6sH', eth_header)
                 # get eth_protocol from unpacked data
+                # ntohs() function converts the unsigned short integer netshort from network byte order to host byte order
                 eth_protocol = socket.ntohs(eth[2])
                 # create info
                 addrinfo = [
-                    'Destination MAC: {}'.format(self.mac_addr(packet[0:6])),
-                    'Source MAC: {}'.format(self.mac_addr(packet[6:12])),
-                    'Protocol: {}'.format(eth_protocol)
+                    self.mac_addr(packet[0:6]),
+                    self.mac_addr(packet[6:12]),
+                    eth_protocol
                 ]
+                p.append(addrinfo[1])
+                p.append(addrinfo[0])
+                p.append(addrinfo[2])
                 print('---' + ' '.join(addrinfo))
                 # remove ethernet header to parse ip header
                 packet = packet[14:]
@@ -110,6 +101,7 @@ class Sniffer:
             ttl = iph[0]
             # get protocol integer
             protocol = iph[1]
+
             # get ip bytes and convert to host byte order
             s_addr = socket.inet_ntoa(iph[2])
             d_addr = socket.inet_ntoa(iph[3])
@@ -118,13 +110,15 @@ class Sniffer:
                 'Version: {}'.format(version),
                 'IP Header Length: {}'.format(ihl),
                 'TTL: {}'.format(ttl),
-                'Protocol: {}'.format(protocol),
-                'Source Addr: {}'.format(s_addr),
-                'Destination Addr: {}'.format(d_addr)]
-
+                protocol,
+                s_addr,
+                d_addr]
+            p.append(headerinfo[3])
+            p.append(headerinfo[4])
+            p.append(headerinfo[5])
             # TCP protocol
             if protocol == 6:
-                print('---' + ' '.join(headerinfo))
+                # print('---' + ' '.join(headerinfo))
                 t = iph_length
                 # get 20 characters after ip header
                 tcp_header = packet[t:t + 20]
@@ -149,12 +143,13 @@ class Sniffer:
                     'Acknowledgement: {}'.format(acknowledgement),
                     'TCP Header Len.: {}'.format(tcph_length),
                 ]
-                print('---' + ' '.join(tcpinfo))
+                # print('---' + ' '.join(tcpinfo))k
                 # calculate total header size
                 h_size = iph_length + tcph_length * 4
 
                 # get data from the packet
                 data = packet[h_size:]
+                p.append(str(data))
                 # try to decode plain text data or print hex
                 try:
                     print('Data: {}'.format(data.decode('ascii')))
@@ -162,7 +157,7 @@ class Sniffer:
                     print('Data: {}'.format(str(data)))
             # UDP protocol
             elif protocol == 17:
-                print('---' + ' '.join(headerinfo))
+                # print('---' + ' '.join(headerinfo))
                 u = iph_length
                 udph_length = 8
                 # get after 8 character from ip header
@@ -179,24 +174,31 @@ class Sniffer:
 
                 udpinfo = [
                     'UDP PACKET',
-                    'Source Port: {}'.format(source_port),
-                    'Destination Port: {}'.format(dest_port),
+                    source_port,
+                    dest_port,
                     'Length: {}'.format(length),
                     'Checksum: {}'.format(checksum)
                 ]
-                print('---' + ' '.join(udpinfo))
-
+                # print('---' + ' '.join(udpinfo))
+                p.append(udpinfo[1])
+                p.append(udpinfo[2])
                 h_size = iph_length + udph_length
 
                 # get data from the packet
 
                 data = packet[h_size:]
-
-                print('Data: {}'.format(str(data)))
-            print("-------------Packet End-------------")
-            self.control_time()
+                try:
+                    p.append(data.decode('ascii'))
+                except:
+                    p.append(data)
+                # print('Data: {}'.format(str(data)))
+            print(p)
+            print("##### Packet {} End #####".format(n))
+            n += 1
+            self.packets.append(p)
 
     # beatify mac addresses
+
     def mac_addr(self, a):
         # split address to 6 character
         pieces = (a[i] for i in range(6))
@@ -204,9 +206,10 @@ class Sniffer:
         return '{:2x}:{:2x}:{:2x}:{:2x}:{:2x}:{:2x}'.format(*pieces)
 
     def control_time(self):
-        if self.args.time > 0 and ((time.time() - self.start_time) > self.args.time):
-            self.exit()
-            sys.exit(1)
+        if self.run_time > 0 and ((time.time() - self.start_time) > self.run_time):
+            return False
+        else:
+            return True
 
     def print_stats(self):
         stats = [
@@ -218,20 +221,20 @@ class Sniffer:
         print('---' + ' '.join(stats))
 
     def run(self):
-        try:
-            # open pcap if ip mode enabled link_type is 101, else 1(ethernet)
-            self.open_pcap(self.args.filename + '.pcap',
-                           (101 if self.ip else 1))
-            # start capturing
-            self.capture_packets()
-        except KeyboardInterrupt:  # exit on ctrl+c
-            self.exit()
+
+        # open pcap if ip mode enabled link_type is 101, else 1(ethernet)
+        self.open_pcap('capture' + '.pcap',
+                       (101 if self.ip else 1))
+        # start capturing
+        self.capture_packets()
+        self.exit()
 
     def exit(self):
         # close file
         self.close_pcap()
         # print accumulated stats to screen
         self.print_stats()
+        print('here')
 
     def open_pcap(self, filename, link_type=1):
         # open given filename write mode in binary
@@ -259,7 +262,10 @@ class Sniffer:
         # close file
         self.pcap_file.close()
 
+    def getData(self):
+        return self.packets
 
-if __name__ == '__main__':
-    app = Sniffer()
-    app.run()
+
+# if __name__ == '__main__':
+#     app = Sniffer()
+#     app.run()
