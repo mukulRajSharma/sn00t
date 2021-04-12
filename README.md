@@ -2,6 +2,20 @@
 
 a network packer sniffer and analyzer
 
+Install requirements:
+```
+pip install requirements.txt
+```
+Run the flask backend:
+```
+cd api/
+flask run
+```
+Run the React App:
+```
+cd client/
+npm start
+```
 # LEARNINGS
 
 pcap-ng > pcap :
