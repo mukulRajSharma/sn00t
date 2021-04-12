@@ -1,6 +1,7 @@
 # sn00t
 
 a network packer sniffer and analyzer
+![alt text](https://i.ibb.co/pW7TnXF/snoot-5.png)
 
 Install requirements:
 ```
