@@ -1,0 +1,6 @@
+socket:
+
+	serves as an endpoint for sending and receiving data across the network
+
+problem:
+	although python is a portable, the programs wont run or give similar results on windows for example. This is due to difference in the implementation of the socket api.
