@@ -2,7 +2,6 @@ import React from "react";
 import "./App.css";
 import "devextreme/dist/css/dx.material.orange.light.css";
 import GridComponent from "./gridComponent";
-import GraphComponent from "./graphComponent";
 
 class Port extends React.Component {
   constructor(props) {

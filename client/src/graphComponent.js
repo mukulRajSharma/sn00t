@@ -20,8 +20,8 @@ import Chart, {
   Grid,
   Tooltip,
   Aggregation,
+  LineSeries,
 } from "devextreme-react/chart";
-import renderer from "devextreme/core/renderer";
 
 class GraphComponent extends React.Component {
   constructor(props) {
@@ -35,15 +35,18 @@ class GraphComponent extends React.Component {
   }
   render() {
     return (
-      <div style={{ width: "90%", marginLeft: "5%" }}>
-        <Chart dataSource={this.props.data} id="chart">
+      <div style={{ width: "90%", marginLeft: "5%", marginBottom: "20px" }}>
+        <Chart
+          dataSource={this.props.data}
+          id="chart"
+          title="Packet count v/s Time"
+        >
           <Series
             argumentField="time"
-            valueField="dst_port"
+            valueField="count"
             type="line"
             color="#79cac4"
           >
-            <Aggregation method="count" />
             <Label visible={true} backgroundColor="#c18e92" />
           </Series>
           <Export enabled={true} />

@@ -7,7 +7,7 @@ from datetime import datetime
 
 
 class Sniffer:
-    def __init__(self, run_time=20):
+    def __init__(self, run_time=30):
         self.run_time = run_time
         self.start_time = time.time()
         self.ip = False
@@ -23,6 +23,7 @@ class Sniffer:
             HOST = socket.gethostbyname(socket.gethostname())
 
             # create a raw utp socket and bind it to the public interface
+            # AF_INET IPv4 protocol
             self.s = socket.socket(
                 socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
             self.s.bind((HOST, 0))
@@ -56,7 +57,7 @@ class Sniffer:
             #     print('Packet: {}'.format(str(packet)))
 
             # add packet to pcap file
-            self.add_pcap(packet)
+            # self.add_pcap(packet)
 
             # check if using ip mode or ethernet mode
             if self.ip is not True:
@@ -118,7 +119,6 @@ class Sniffer:
             p.append(headerinfo[5])
             # TCP protocol
             if protocol == 6:
-                # print('---' + ' '.join(headerinfo))
                 t = iph_length
                 # get 20 characters after ip header
                 tcp_header = packet[t:t + 20]
@@ -143,7 +143,6 @@ class Sniffer:
                     'Acknowledgement: {}'.format(acknowledgement),
                     'TCP Header Len.: {}'.format(tcph_length),
                 ]
-                # print('---' + ' '.join(tcpinfo))k
                 # calculate total header size
                 h_size = iph_length + tcph_length * 4
 
@@ -157,7 +156,6 @@ class Sniffer:
                     print('Data: {}'.format(str(data)))
             # UDP protocol
             elif protocol == 17:
-                # print('---' + ' '.join(headerinfo))
                 u = iph_length
                 udph_length = 8
                 # get after 8 character from ip header
@@ -179,13 +177,11 @@ class Sniffer:
                     'Length: {}'.format(length),
                     'Checksum: {}'.format(checksum)
                 ]
-                # print('---' + ' '.join(udpinfo))
                 p.append(udpinfo[1])
                 p.append(udpinfo[2])
                 h_size = iph_length + udph_length
 
                 # get data from the packet
-
                 data = packet[h_size:]
                 try:
                     p.append(data.decode('ascii'))
@@ -223,18 +219,18 @@ class Sniffer:
     def run(self):
 
         # open pcap if ip mode enabled link_type is 101, else 1(ethernet)
-        self.open_pcap('capture' + '.pcap',
-                       (101 if self.ip else 1))
+        # self.open_pcap('capture' + '.pcap',
+        #    (101 if self.ip else 1))
         # start capturing
         self.capture_packets()
         self.exit()
 
     def exit(self):
         # close file
-        self.close_pcap()
+        # self.close_pcap()
         # print accumulated stats to screen
         self.print_stats()
-        print('here')
+        print('SNIFF RUN END...')
 
     def open_pcap(self, filename, link_type=1):
         # open given filename write mode in binary

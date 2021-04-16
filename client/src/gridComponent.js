@@ -10,17 +10,23 @@ import PieChart, {
   Legend,
   Animation,
 } from "devextreme-react/pie-chart";
-import GraphComponent from "./graphComponent";
+import GraphComponent from "./GraphComponent.js";
+import LinearProgress from "@material-ui/core/LinearProgress";
 
 export default function GridComponent() {
   const [data, setData] = React.useState([]);
+  const [gData, setGData] = React.useState();
   const allowedPageSizes = [5, 10, 15, 20];
   const [open, setOpen] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
   async function getData() {
+    setLoading(true);
     await fetch("/sniffer")
       .then((res) => res.json())
       .then((result) => {
         setData(result);
+        setGData(result[result.length - 1]);
+        setLoading(false);
       });
   }
   React.useEffect(() => {
@@ -45,27 +51,19 @@ export default function GridComponent() {
   function formatText(arg) {
     return `${arg.argumentText} (${arg.percentText})`;
   }
-  function graphData() {
-    var ret = [];
-    var i;
-    for (i = 0; i < rows.length; i++) {
-      var tmp = {};
-      tmp["arg"] = rows[i].time;
-      tmp["val"] = i + 1;
-      ret.push(tmp);
-    }
-    return ret;
-  }
+
   return (
     <div>
       <div style={{ width: "96%", marginLeft: "2%" }}>
+        {loading && <LinearProgress color="secondary" />}
+        <p style={{ textAlign: "left" }}>Packets captured:</p>
         <DataGrid
           dataSource={rows}
           allowColumnReordering={true}
           showBorders={true}
           autoExpandAll={false}
           columnAutoWidth={true}
-          onRowClick={checkOpen}
+          // onRowClick={checkOpen}
           selection={{ mode: "single" }}
           // rowAlternationEnabled={true}
         >
@@ -134,10 +132,10 @@ export default function GridComponent() {
           text="Show intensity graph"
           width={300}
           onClick={checkOpen}
-          disables={false}
+          disabled={false}
         />
       </div>
-      {open && <GraphComponent data={rows} />}
+      {open && <GraphComponent data={gData} />}
     </div>
   );
 }
