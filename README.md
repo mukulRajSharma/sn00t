@@ -1,7 +1,24 @@
 # sn00t
-
 a network packer sniffer and analyzer
 
+![alt text](https://i.ibb.co/N6b7QPF/snoot-4.png)
+![alt text](https://i.ibb.co/pW7TnXF/snoot-5.png)
+
+
+Install requirements:
+```
+pip install requirements.txt
+```
+Run the flask backend:
+```
+cd api/
+flask run
+```
+Run the React App:
+```
+cd client/
+npm start
+```
 # LEARNINGS
 
 pcap-ng > pcap :
